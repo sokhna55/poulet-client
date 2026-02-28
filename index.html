@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍗 PouletChaud — Commander</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0a00; --card: #1a1100; --card2: #221800; --border: #3a2800;
+    --gold: #f5a623; --orange: #e8621a; --red: #e83a1a;
+    --green: #2ecc71; --blue: #3498db; --yellow: #f1c40f;
+    --text: #f0e6d0; --muted: #8a7560;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  header { background: linear-gradient(135deg, #1a0a00, #2d1500, #1a0a00); border-bottom: 2px solid var(--gold); padding: 16px 20px; text-align: center; }
+  .logo { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; color: var(--gold); }
+  .logo span { color: var(--orange); }
+  .tagline { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+  .main { max-width: 600px; margin: 0 auto; padding: 24px 16px; }
+  .steps { display: flex; justify-content: center; margin-bottom: 28px; }
+  .step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+  .step::after { content: ''; position: absolute; top: 16px; left: 50%; width: 100%; height: 2px; background: var(--border); z-index: 0; }
+  .step:last-child::after { display: none; }
+  .step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--border); color: var(--muted); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; z-index: 1; transition: all 0.3s; }
+  .step.active .step-num { background: var(--gold); color: #000; }
+  .step.done .step-num { background: var(--green); color: #fff; }
+  .step-label { font-size: 0.65rem; color: var(--muted); margin-top: 5px; text-align: center; }
+  .step.active .step-label { color: var(--gold); font-weight: 600; }
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--gold); margin-bottom: 20px; }
+  .produits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .produit-card { background: var(--card2); border: 2px solid var(--border); border-radius: 14px; padding: 16px 12px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
+  .produit-card:hover { border-color: var(--orange); transform: translateY(-2px); }
+  .produit-card.selected { border-color: var(--gold); background: #2d1d00; }
+  .produit-ico { font-size: 2.2rem; margin-bottom: 6px; }
+  .produit-nom { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+  .produit-desc { font-size: 0.7rem; color: var(--muted); margin-bottom: 6px; }
+  .produit-prix { font-size: 1rem; color: var(--gold); font-weight: 700; }
+  .produit-badge { position: absolute; top: -8px; right: -8px; background: var(--gold); color: #000; border-radius: 50%; width: 24px; height: 24px; display: none; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
+  .produit-card.selected .produit-badge { display: flex; }
+  .qty-control { display: none; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
+  .produit-card.selected .qty-control { display: flex; }
+  .qty-btn { background: var(--border); border: none; border-radius: 6px; width: 28px; height: 28px; color: var(--text); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .qty-btn:hover { background: var(--gold); color: #000; }
+  .qty-num { font-weight: 700; color: var(--gold); min-width: 20px; text-align: center; }
+  .panier-empty { text-align: center; padding: 20px; color: var(--muted); font-size: 0.85rem; }
+  .panier-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .panier-item:last-child { border-bottom: none; }
+  .panier-nom { font-weight: 600; font-size: 0.9rem; }
+  .panier-qty { font-size: 0.8rem; color: var(--muted); }
+  .panier-prix { color: var(--gold); font-weight: 700; }
+  .total-ligne { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 0; margin-top: 8px; border-top: 2px solid var(--gold); }
+  .total-label { font-weight: 700; }
+  .total-val { font-size: 1.4rem; font-weight: 700; color: var(--gold); }
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-group label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+  .form-group input, .form-group select, .form-group textarea { background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; transition: border-color 0.2s; width: 100%; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--gold); }
+  select option { background: #1a1100; }
+  .required { color: var(--orange); }
+  .paiement-options { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 6px; }
+  .paiement-opt { background: var(--card2); border: 2px solid var(--border); border-radius: 12px; padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .paiement-opt:hover { border-color: var(--orange); }
+  .paiement-opt.selected { border-color: var(--gold); background: #2d1d00; }
+  .paiement-ico { font-size: 1.8rem; margin-bottom: 6px; }
+  .paiement-nom { font-size: 0.75rem; font-weight: 700; }
+  .paiement-info { font-size: 0.65rem; color: var(--muted); margin-top: 3px; }
+  .info-pay { border-radius: 10px; padding: 14px; margin-top: 10px; display: none; }
+  .info-pay-titre { font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; }
+  .info-pay-num { font-size: 1.4rem; font-weight: 900; letter-spacing: 2px; margin: 6px 0; }
+  .info-pay-sub { font-size: 0.75rem; color: var(--muted); }
+  .copy-btn { background: var(--border); border: none; border-radius: 8px; color: var(--text); padding: 6px 14px; font-size: 0.78rem; cursor: pointer; margin-top: 8px; font-family: 'DM Sans', sans-serif; }
+  .copy-btn:hover { background: var(--gold); color: #000; }
+  .btn { padding: 14px; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s; width: 100%; margin-top: 8px; }
+  .btn-primary { background: linear-gradient(135deg, var(--gold), var(--orange)); color: #000; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+  .btn-wa { background: #25D366; color: #fff; }
+  .btn-row { display: flex; gap: 10px; }
+  .btn-row .btn { flex: 1; }
+  .success-page { text-align: center; padding: 30px 10px; }
+  .success-ico { font-size: 4rem; margin-bottom: 16px; animation: bounce 0.6s ease; }
+  @keyframes bounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+  .success-title { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: var(--gold); margin-bottom: 10px; }
+  .success-text { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.6; }
+  .num-box { background: var(--card2); border: 1px solid var(--gold); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .num-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .num-val { font-size: 2rem; font-weight: 900; color: var(--gold); font-family: 'Playfair Display', serif; }
+  .statut-card { background: var(--card2); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .statut-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+  .statut-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .statut-dot.done { background: var(--green); }
+  .statut-dot.active { background: var(--gold); animation: pulse 1s infinite; }
+  .statut-dot.pending { background: var(--border); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .st-done { color: var(--green); font-size: 0.85rem; }
+  .st-active { color: var(--gold); font-weight: 700; font-size: 0.85rem; }
+  .st-pending { color: var(--muted); font-size: 0.85rem; }
+  .toast { position: fixed; bottom: 24px; right: 16px; background: var(--gold); color: #000; padding: 12px 20px; border-radius: 10px; font-weight: 700; font-size: 0.85rem; z-index: 999; display: none; max-width: 280px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🍗 Poulet<span>Chaud</span></div>
+  <div class="tagline">Poulet rôti frais — Livraison rapide 🔥</div>
+</header>
+<div class="main">
+  <div class="steps">
+    <div class="step active" id="step1"><div class="step-num">1</div><div class="step-label">Produits</div></div>
+    <div class="step" id="step2"><div class="step-num">2</div><div class="step-label">Infos</div></div>
+    <div class="step" id="step3"><div class="step-num">3</div><div class="step-label">Paiement</div></div>
+    <div class="step" id="step4"><div class="step-num">✓</div><div class="step-label">Confirmé</div></div>
+  </div>
+
+  <!-- ÉTAPE 1 -->
+  <div class="panel active" id="panel-1">
+    <div class="card">
+      <div class="card-title">🍗 Choisissez vos produits</div>
+      <div class="produits-grid" id="produits-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🛒 Votre panier</div>
+      <div id="panier-content"><div class="panier-empty">Aucun produit sélectionné</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="goStep2()" id="btn-step2" disabled style="opacity:0.5">Continuer → Mes informations</button>
+  </div>
+
+  <!-- ÉTAPE 2 -->
+  <div class="panel" id="panel-2">
+    <div class="card">
+      <div class="card-title">👤 Vos informations</div>
+      <div class="form-group"><label>Nom complet <span class="required">*</span></label><input type="text" id="c-nom" placeholder="ex: Fatou Diallo"></div>
+      <div class="form-group"><label>Téléphone <span class="required">*</span></label><input type="tel" id="c-tel" placeholder="ex: 77 123 45 67"></div>
+      <div class="form-group"><label>Adresse de livraison <span class="required">*</span></label><input type="text" id="c-adresse" placeholder="ex: Rue 10, Médina, Dakar"></div>
+      <div class="form-group">
+        <label>Heure de livraison</label>
+        <select id="c-heure">
+          <option value="">Dès que possible</option>
+          <option>12h00</option><option>13h00</option><option>14h00</option>
+          <option>15h00</option><option>16h00</option><option>17h00</option>
+          <option>18h00</option><option>19h00</option><option>20h00</option><option>21h00</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Note spéciale</label><textarea id="c-note" rows="2" placeholder="ex: Bien grillé, sans piment..."></textarea></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(1)">← Retour</button>
+      <button class="btn btn-primary" onclick="goStep3()">Continuer → Paiement</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 -->
+  <div class="panel" id="panel-3">
+    <div class="card">
+      <div class="card-title">💳 Mode de paiement</div>
+      <div class="paiement-options">
+        <div class="paiement-opt" id="pay-wave" onclick="selectPay('wave')">
+          <div class="paiement-ico">🌊</div><div class="paiement-nom">Wave</div><div class="paiement-info">Paiement mobile</div>
+        </div>
+        <div class="paiement-opt" id="pay-om" onclick="selectPay('om')">
+          <div class="paiement-ico">🟠</div><div class="paiement-nom">Orange Money</div><div class="paiement-info">Paiement mobile</div>
+        </div>
+        <div class="paiement-opt" id="pay-livraison" onclick="selectPay('livraison')">
+          <div class="paiement-ico">🤝</div><div class="paiement-nom">À la livraison</div><div class="paiement-info">Cash ou mobile</div>
+        </div>
+      </div>
+
+      <div class="info-pay" id="info-wave" style="background:#0a1a2a; border:1px solid #3498db;">
+        <div class="info-pay-titre" style="color:#3498db;">🌊 Paiement Wave</div>
+        <div class="info-pay-sub">Envoyez ce montant :</div>
+        <div class="info-pay-num" style="color:var(--gold)" id="wave-mnt">0 FCFA</div>
+        <div class="info-pay-sub">Au numéro :</div>
+        <div class="info-pay-num" id="wave-num">77 000 00 00</div>
+        <div class="info-pay-sub">Mettez votre nom en référence</div>
+        <button class="copy-btn" onclick="copyNum('wave-num')">📋 Copier</button>
+      </div>
+
+      <div class="info-pay" id="info-om" style="background:#1a0d00; border:1px solid #ff6600;">
+        <div class="info-pay-titre" style="color:#ff6600;">🟠 Orange Money</div>
+        <div class="info-pay-sub">Envoyez ce montant :</div>
+        <div class="info-pay-num" style="color:var(--gold)" id="om-mnt">0 FCFA</div>
+        <div class="info-pay-sub">Au numéro :</div>
+        <div class="info-pay-num" id="om-num">77 000 00 00</div>
+        <div class="info-pay-sub">Mettez votre nom en référence</div>
+        <button class="copy-btn" onclick="copyNum('om-num')">📋 Copier</button>
+      </div>
+
+      <div class="info-pay" id="info-livraison" style="background:#0a2a0a; border:1px solid var(--green);">
+        <div class="info-pay-titre" style="color:var(--green);">🤝 Paiement à la livraison</div>
+        <div class="info-pay-sub">Préparez la somme exacte :</div>
+        <div class="info-pay-num" style="color:var(--gold)" id="liv-mnt">0 FCFA</div>
+        <div class="info-pay-sub">Cash, Wave ou Orange Money acceptés</div>
+      </div>
+
+      <div style="background:var(--card2); border-radius:10px; padding:14px; margin-top:16px;">
+        <div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Récapitulatif</div>
+        <div id="recap-items"></div>
+        <div class="total-ligne">
+          <span class="total-label">Total</span>
+          <span class="total-val" id="recap-total">0 FCFA</span>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goStep(2)">← Retour</button>
+      <button class="btn btn-primary" id="btn-confirmer" onclick="passerCommande()">✅ Confirmer ma commande</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 -->
+  <div class="panel" id="panel-4">
+    <div class="card success-page">
+      <div class="success-ico">🎉</div>
+      <div class="success-title">Commande confirmée !</div>
+      <div class="success-text">Merci ! Votre commande est bien reçue.<br>Nous la préparons dès maintenant. 🍗🔥</div>
+      <div class="num-box">
+        <div class="num-label">Numéro de commande</div>
+        <div class="num-val" id="num-commande">#000000</div>
+      </div>
+      <div class="statut-card">
+        <div class="statut-row"><div class="statut-dot done"></div><div class="st-done">✅ Commande reçue</div></div>
+        <div class="statut-row"><div class="statut-dot active"></div><div class="st-active">⏳ En cours de traitement...</div></div>
+        <div class="statut-row"><div class="statut-dot pending"></div><div class="st-pending">🚚 En cours de livraison</div></div>
+        <div class="statut-row"><div class="statut-dot pending"></div><div class="st-pending">🏠 Livré</div></div>
+      </div>
+      <button class="btn btn-wa" onclick="contacterWA()" style="margin-bottom:8px;">💬 Nous contacter sur WhatsApp</button>
+      <button class="btn btn-primary" onclick="nouvelleCommande()">🍗 Nouvelle commande</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAi43Q2rqSkRyLmvBSMCrMdq2PBsLJCpXw",
+    authDomain: "poulet-chaud.firebaseapp.com",
+    databaseURL: "https://poulet-chaud-default-rtdb.firebaseio.com",
+    projectId: "poulet-chaud",
+    storageBucket: "poulet-chaud.firebasestorage.app",
+    messagingSenderId: "44309199823",
+    appId: "1:44309199823:web:f389b163069aa7ae7730ba"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  window._pushCommande = async (data) => {
+    const r = ref(db, 'commandes');
+    const result = await push(r, { ...data, date: Date.now() });
+    return result.key;
+  };
+
+  // Charger les paramètres depuis Firebase
+  window._loadParams = async () => {
+    try {
+      const snap = await get(ref(db, 'parametres'));
+      if (snap.exists()) {
+        const p = snap.val();
+        if (p.wave_num) document.getElementById('wave-num').textContent = p.wave_num || CONFIG.wave;
+        if (p.om_num) document.getElementById('om-num').textContent = p.om_num || CONFIG.orange_money;
+        if (p.whatsapp) window._waNum = p.whatsapp.replace(/\D/g, '');
+      }
+    } catch(e) {}
+  };
+  window._loadParams();
+</script>
+
+<script>
+const PRODUITS = [
+  { id: 'poulet-entier', nom: 'Poulet Entier',     desc: 'Poulet rôti entier',        prix: 4500, ico: '🍗' },
+  { id: 'demi-poulet',   nom: 'Demi Poulet',        desc: 'Moitié de poulet rôti',     prix: 2500, ico: '🍖' },
+  { id: 'cuisse',        nom: 'Cuisse',              desc: 'Cuisse grillée',            prix: 1500, ico: '🦵' },
+  { id: 'ailes',         nom: 'Ailes x4',            desc: '4 ailes croustillantes',    prix: 1200, ico: '🐔' },
+  { id: 'yassa',         nom: 'Poulet Yassa',        desc: 'Mariné à l\'oignon',        prix: 5500, ico: '🍲' },
+  { id: 'brochettes',    nom: 'Brochettes x5',       desc: '5 brochettes de poulet',    prix: 2000, ico: '🍢' },
+  { id: 'poulet-citron', nom: 'Poulet Citron',       desc: 'Mariné citron & herbes',    prix: 4800, ico: '🍋' },
+  { id: 'aile-piquant',  nom: 'Ailes Piquantes x4',  desc: 'Sauce pimentée 🔥',         prix: 1400, ico: '🌶️' },
+];
+
+// ============================================================
+// ✏️ ZONE DE CONFIGURATION — MODIFIEZ ICI VOS NUMÉROS
+// ============================================================
+
+const CONFIG = {
+  whatsapp:     '221770000000',  // ← Mettez votre numéro WhatsApp ici (sans espaces, avec 221 devant)
+  wave:         '77 000 00 00',  // ← Mettez votre numéro Wave ici
+  orange_money: '77 000 00 00',  // ← Mettez votre numéro Orange Money ici
+  email:        'sokhnabarry3@gmail.com', // ← Votre email de notification
+};
+
+// ============================================================
+
+let selection = {};
+let paiementChoisi = null;
+window._waNum = CONFIG.whatsapp;
+window._waMsg = '';
+
+function buildProduits() {
+  document.getElementById('produits-grid').innerHTML = PRODUITS.map(p => `
+    <div class="produit-card" id="pc-${p.id}" onclick="toggleProduit('${p.id}')">
+      <div class="produit-badge" id="badge-${p.id}">0</div>
+      <div class="produit-ico">${p.ico}</div>
+      <div class="produit-nom">${p.nom}</div>
+      <div class="produit-desc">${p.desc}</div>
+      <div class="produit-prix">${p.prix.toLocaleString()} FCFA</div>
+      <div class="qty-control" onclick="event.stopPropagation()">
+        <button class="qty-btn" onclick="changeQty('${p.id}',-1)">−</button>
+        <span class="qty-num" id="qn-${p.id}">1</span>
+        <button class="qty-btn" onclick="changeQty('${p.id}',1)">+</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleProduit(id) {
+  if (selection[id]) { delete selection[id]; document.getElementById('pc-'+id).classList.remove('selected'); }
+  else { selection[id]=1; document.getElementById('pc-'+id).classList.add('selected'); document.getElementById('qn-'+id).textContent=1; }
+  updateBadges(); updatePanier();
+}
+
+function changeQty(id, d) {
+  if (!selection[id]) return;
+  selection[id] = Math.max(1, selection[id]+d);
+  document.getElementById('qn-'+id).textContent = selection[id];
+  updateBadges(); updatePanier();
+}
+
+function updateBadges() {
+  Object.entries(selection).forEach(([id,qty]) => { const b=document.getElementById('badge-'+id); if(b) b.textContent=qty; });
+}
+
+function calcTotal() {
+  return Object.entries(selection).reduce((s,[id,q]) => { const p=PRODUITS.find(x=>x.id===id); return s+(p?p.prix*q:0); }, 0);
+}
+
+function updatePanier() {
+  const keys = Object.keys(selection);
+  const btn = document.getElementById('btn-step2');
+  btn.disabled = keys.length===0; btn.style.opacity = keys.length===0?'0.5':'1';
+  const c = document.getElementById('panier-content');
+  if (!keys.length) { c.innerHTML='<div class="panier-empty">Aucun produit sélectionné</div>'; return; }
+  c.innerHTML = keys.map(id => { const p=PRODUITS.find(x=>x.id===id);
+    return `<div class="panier-item"><div><div class="panier-nom">${p.ico} ${p.nom}</div><div class="panier-qty">x${selection[id]}</div></div><div class="panier-prix">${(p.prix*selection[id]).toLocaleString()} F</div></div>`;
+  }).join('') + `<div class="total-ligne"><span class="total-label">Total</span><span class="total-val">${calcTotal().toLocaleString()} FCFA</span></div>`;
+}
+
+function goStep(n) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+n).classList.add('active');
+  for(let i=1;i<=4;i++){const s=document.getElementById('step'+i);s.classList.remove('active','done');if(i<n)s.classList.add('done');if(i===n)s.classList.add('active');}
+  window.scrollTo(0,0);
+}
+
+function goStep2() {
+  if (!Object.keys(selection).length) { showToast('⚠️ Choisissez un produit !',true); return; }
+  goStep(2);
+}
+
+function goStep3() {
+  const nom=document.getElementById('c-nom').value.trim();
+  const tel=document.getElementById('c-tel').value.trim();
+  const adresse=document.getElementById('c-adresse').value.trim();
+  if (!nom) { showToast('⚠️ Entrez votre nom !',true); return; }
+  if (!tel) { showToast('⚠️ Entrez votre téléphone !',true); return; }
+  if (!adresse) { showToast('⚠️ Entrez votre adresse !',true); return; }
+  const t = calcTotal();
+  const fmt = t.toLocaleString()+' FCFA';
+  ['wave-mnt','om-mnt','liv-mnt'].forEach(id => document.getElementById(id).textContent=fmt);
+  document.getElementById('recap-total').textContent = fmt;
+  document.getElementById('recap-items').innerHTML = Object.entries(selection).map(([id,qty])=>{
+    const p=PRODUITS.find(x=>x.id===id);
+    return `<div class="panier-item"><div><div class="panier-nom">${p.ico} ${p.nom}</div><div class="panier-qty">x${qty}</div></div><div class="panier-prix">${(p.prix*qty).toLocaleString()} F</div></div>`;
+  }).join('');
+  goStep(3);
+}
+
+function selectPay(type) {
+  paiementChoisi = type;
+  ['wave','om','livraison'].forEach(t => {
+    document.getElementById('pay-'+t).classList.toggle('selected', t===type);
+    document.getElementById('info-'+t).style.display = t===type?'block':'none';
+  });
+}
+
+function copyNum(id) {
+  const n = document.getElementById(id).textContent.replace(/\s/g,'');
+  navigator.clipboard.writeText(n).then(()=>showToast('📋 Numéro copié !'));
+}
+
+async function passerCommande() {
+  if (!paiementChoisi) { showToast('⚠️ Choisissez un mode de paiement !',true); return; }
+  const btn = document.getElementById('btn-confirmer');
+  btn.textContent='⏳ Envoi...'; btn.disabled=true;
+
+  const labels = {wave:'Wave', om:'Orange Money', livraison:'À la livraison'};
+  const nom=document.getElementById('c-nom').value.trim();
+  const tel=document.getElementById('c-tel').value.trim();
+  const adresse=document.getElementById('c-adresse').value.trim();
+  const heure=document.getElementById('c-heure').value||'Dès que possible';
+  const note=document.getElementById('c-note').value.trim();
+  const total=calcTotal();
+
+  const data = { nom, tel, adresse, heure, note, produits:{...selection}, total, paiement:labels[paiementChoisi], statut:'commandé', montantPaye:0, source:'client' };
+
+  try {
+    const key = await window._pushCommande(data);
+    const num = '#'+key.slice(-6).toUpperCase();
+    document.getElementById('num-commande').textContent = num;
+
+    // Préparer message WhatsApp
+    const prodList = Object.entries(selection).map(([id,qty])=>{
+      const p=PRODUITS.find(x=>x.id===id); return `${p.ico} ${p.nom} x${qty}`;
+    }).join(', ');
+
+    window._waMsg = `🍗 *NOUVELLE COMMANDE ${num}*\n\n👤 *Client:* ${nom}\n📞 *Tél:* ${tel}\n📍 *Adresse:* ${adresse}\n⏰ *Heure:* ${heure}\n\n*Produits:* ${prodList}\n\n💰 *Total:* ${total.toLocaleString()} FCFA\n💳 *Paiement:* ${labels[paiementChoisi]}${note?'\n📝 *Note:* '+note:''}`;
+
+    // Envoyer notification email via EmailJS (gratuit)
+    if (window.emailjs) {
+      emailjs.send('service_poulet', 'template_commande', {
+        to_email: 'sokhnabarry3@gmail.com',
+        commande_num: num,
+        client_nom: nom,
+        client_tel: tel,
+        client_adresse: adresse,
+        produits: prodList,
+        total: total.toLocaleString()+' FCFA',
+        paiement: labels[paiementChoisi],
+        heure: heure,
+        note: note || 'Aucune'
+      }).catch(()=>{});
+    }
+
+    goStep(4);
+  } catch(e) {
+    showToast('❌ Erreur : '+e.message, true);
+    btn.textContent='✅ Confirmer ma commande'; btn.disabled=false;
+  }
+}
+
+function contacterWA() {
+  const num = (window._waNum||'221770000000').replace(/\D/g,'');
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(window._waMsg||'Bonjour PouletChaud!')}`, '_blank');
+}
+
+function nouvelleCommande() {
+  selection={}; paiementChoisi=null;
+  buildProduits();
+  ['c-nom','c-tel','c-adresse','c-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('c-heure').value='';
+  ['wave','om','livraison'].forEach(t=>{ document.getElementById('pay-'+t).classList.remove('selected'); document.getElementById('info-'+t).style.display='none'; });
+  const btn=document.getElementById('btn-confirmer');
+  if(btn){btn.textContent='✅ Confirmer ma commande';btn.disabled=false;}
+  goStep(1); updatePanier();
+}
+
+function showToast(msg, error) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=error?'#c0392b':'var(--gold)'; t.style.color=error?'#fff':'#000';
+  t.style.display='block'; setTimeout(()=>t.style.display='none',2500);
+}
+
+buildProduits();
+</script>
+</body>
+</html>
